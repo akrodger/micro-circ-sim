@@ -41,7 +41,7 @@ void mcs_parse_transistor(char* nl_line,
 
 
 void mcs_read_netlist(const char* filename, mcs_netlist** nl){
-    static const char r_only = 'r';
+    static const char r_only[2] = "r";
     static char nl_line[MCS_NETLIST_LINE_LEN+1];
     int i = 0;
     int newline_idx = 0;
@@ -49,7 +49,7 @@ void mcs_read_netlist(const char* filename, mcs_netlist** nl){
     mcs_netlist* prev_line = NULL;
     //pointer to location of the comment character '%'
     char* token_ptr = NULL;
-    FILE* net_text = fopen(filename,&r_only);
+    FILE* net_text = fopen(filename,r_only);
     if(net_text == NULL){ //if you cant open the file
         mcs_error(FILE_READ_ONLY);//throw an error to stdout and exit.
     }
@@ -115,6 +115,20 @@ void mcs_read_netlist(const char* filename, mcs_netlist** nl){
     fclose(net_text);
 }
 
+void mcs_write_netlist(char* filename, mcs_netlist* nl){
+    static const char w_only[2] = "w";
+    static char nl_line[MCS_NETLIST_LINE_LEN+1];
+    FILE* net_text = fopen(filename,w_only);
+    mcs_netlist* this_line = nl;
+    while(this_line->next != NULL){
+        mcs_print_element(nl_line, this_line->dev);
+        fprintf(net_text,"%s\n",nl_line);
+        this_line = this_line->next;
+    }
+    mcs_print_element(nl_line, this_line->dev);
+    fprintf(net_text,"%s\n",nl_line);
+    fclose(net_text);
+}
 
 void mcs_print_element(char* nl_line, mcs_element* z){
     //We assumme that the pointer nl_line has at least 81 characters allocated.
@@ -126,7 +140,7 @@ void mcs_print_element(char* nl_line, mcs_element* z){
         case 'R'://Resistor
         case 'C'://Capacitor
         case 'L'://Inductor
-            sprintf(nl_line,"%c%lu %lu %lu %lf",z->L.symbol,z->L.idx,
+            sprintf(nl_line,"%c%lu %lu %lu %le",z->L.symbol,z->L.idx,
                     z->L.node_pos,z->L.node_neg,z->L.henry);
             break;
         case 'D'://Diode
