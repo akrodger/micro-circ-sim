@@ -71,9 +71,6 @@ void mcs_read_netlist(const char* filename, mcs_netlist** nl){
             //then error out based on formatting error.
             mcs_error(MCS_NETLIST_FMT);
         }
-
-        //printf("%s\n",nl_line);
-        //getchar();
         //nl_line contains a Cstring with 1 line of the parsed file now.
         token_ptr = strchr(nl_line, (int) '%' );
         //To ignore everything after the comment, just change the
@@ -90,7 +87,7 @@ void mcs_read_netlist(const char* filename, mcs_netlist** nl){
                 token_ptr = NULL;   
                 break;
             }
-            if(nl_line[i] != ' ' ||
+            if(nl_line[i] != ' ' &&
                nl_line[i] != '\t'){
                 token_ptr = &(nl_line[i]);
                 break;
