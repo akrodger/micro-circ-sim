@@ -58,7 +58,8 @@ void mcs_write_netlist(char* filename, mcs_netlist* nl);
 
 /*
  * Read the mcs_element struct and output its data to a Cstring.
- *
+ * It is assumed that nl_line has at least MCS_NETLIST_LINE_LEN+1 chars
+ * allocated to it.
  */
 void mcs_print_element(char* nl_line, mcs_element* z);
 
