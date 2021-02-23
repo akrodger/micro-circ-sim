@@ -46,6 +46,7 @@ void mcs_read_netlist(const char* filename, mcs_netlist** nl){
     int i = 0;
     int newline_idx = 0;
     mcs_netlist** this_line = nl;
+    mcs_netlist* prev_line = NULL;
     //pointer to location of the comment character '%'
     char* token_ptr = NULL;
     FILE* net_text = fopen(filename,&r_only);
@@ -70,6 +71,9 @@ void mcs_read_netlist(const char* filename, mcs_netlist** nl){
             //then error out based on formatting error.
             mcs_error(MCS_NETLIST_FMT);
         }
+
+        //printf("%s\n",nl_line);
+        //getchar();
         //nl_line contains a Cstring with 1 line of the parsed file now.
         token_ptr = strchr(nl_line, (int) '%' );
         //To ignore everything after the comment, just change the
@@ -77,20 +81,82 @@ void mcs_read_netlist(const char* filename, mcs_netlist** nl){
         if(token_ptr != NULL){
             *token_ptr = '\0';
         }
+        //printf("%s\n",nl_line);
         //We can now process the string as if there are no comments.
-        //Need to skip all leading spaces and tabs, which can be easily done
-        //using strtok.
-        token_ptr = strtok(nl_line," \n\t");
+        //Need to skip all leading spaces and tabs.
+        token_ptr = NULL;
+        for(i=0;i<MCS_NETLIST_LINE_LEN;i++){
+            if(nl_line[i] == '\0' || nl_line[i] == '\n'){
+                token_ptr = NULL;   
+                break;
+            }
+            if(nl_line[i] != ' ' ||
+               nl_line[i] != '\t'){
+                token_ptr = &(nl_line[i]);
+                break;
+            }
+        }
+        //printf("%s\n",nl_line);
         //A line containing only a comment or newline is allowed,
         //so if the token_ptr is NULL then just go to the next line.
-        if(token_ptr == NULL){continue;}
+        if(token_ptr == NULL){
+            continue;
+        }
+        //if first meaningful char is end of file, then break.
+        if(*token_ptr == (char) EOF){
+            break;
+        }
         //The token ptr contains a pointer to a non space and non-newline char.
         //Now call the helper function which processes this
         //string into a netlist struct
         mcs_netlist_str2struct(token_ptr, this_line);
+        (*this_line)->prev = prev_line;
         //Move on to next line of the file.
+        prev_line = *this_line;
         this_line = &((*this_line)->next);
-    }while(nl_line[newline_idx] != (char) EOF);
+    }while(1);
+    fclose(net_text);
+}
+
+
+void mcs_print_element(char* nl_line, mcs_element* z){
+    //We assumme that the pointer nl_line has at least 81 characters allocated.
+    //First step: read the char which is stored as the first
+    //entry of the union z.
+    switch(z->elem.symbol){
+        case 'V'://Voltage Source
+        case 'I'://Current Source
+        case 'R'://Resistor
+        case 'C'://Capacitor
+        case 'L'://Inductor
+            sprintf(nl_line,"%c%lu %lu %lu %lf",z->L.symbol,z->L.idx,
+                    z->L.node_pos,z->L.node_neg,z->L.henry);
+            break;
+        case 'D'://Diode
+            sprintf(nl_line,"%c%lu %lu %lu",z->D.symbol,z->D.idx,
+                    z->D.node_pos,z->D.node_neg);
+            break;
+        case 'Q'://BJT
+            if(z->QN.dope == 'N' || z->QP.dope == 'P'){
+                sprintf(nl_line,"%c%c%lu %lu %lu %lu",z->QN.symbol,
+                    z->QN.dope,z->QN.idx,z->QN.node_c,
+                    z->QN.node_b,z->QN.node_e);
+            }else{
+            mcs_error(MCS_DEV_WRITE_UNKNOWN);
+            }
+            break;
+        case 'M'://MOSFET
+            if(z->MN.dope == 'N' || z->MP.dope == 'P'){
+                sprintf(nl_line,"%c%c%lu %lu %lu %lu",z->MN.symbol,
+                    z->MN.dope,z->MN.idx,z->MN.node_d,
+                    z->MN.node_g,z->MN.node_s);                
+            }else{
+            mcs_error(MCS_DEV_WRITE_UNKNOWN);
+            }
+            break;
+        default:
+            mcs_error(MCS_DEV_WRITE_UNKNOWN);
+    }
 }
 
 
@@ -168,7 +234,7 @@ void mcs_netlist_str2struct(char* nl_line, mcs_netlist** nl){
                 mcs_init_bjt_pnp(&((*nl)->dev->QP),
                                         dev_idx,node1,node2,node3);
             }else{
-            mcs_error(MCS_DEV_UNKNOWN);
+            mcs_error(MCS_DEV_READ_UNKNOWN);
             }
             break;
         case 'M'://MOSFET
@@ -180,11 +246,11 @@ void mcs_netlist_str2struct(char* nl_line, mcs_netlist** nl){
                 mcs_init_mosfet_pc(&((*nl)->dev->MP),
                                         dev_idx,node1,node2,node3);
             }else{
-            mcs_error(MCS_DEV_UNKNOWN);
+            mcs_error(MCS_DEV_READ_UNKNOWN);
             }
             break;
         default:
-            mcs_error(MCS_DEV_UNKNOWN);
+            mcs_error(MCS_DEV_READ_UNKNOWN);
     }
 }
 
@@ -201,18 +267,17 @@ void mcs_parse_VIRCL(char* nl_line,
         mcs_error(MCS_NUM_PARSER);
     }
     token_ptr = strtok(end_ptr," \t");
-    errno = 0;
     *node_p_ptr = strtoul(token_ptr, &end_ptr, 10);
     if((*node_p_ptr == 0 && errno != 0) || (token_ptr == end_ptr)){
         mcs_error(MCS_NUM_PARSER);
     }
-    token_ptr = strtok(end_ptr," \t");
+    token_ptr = strtok(NULL," \t");
     errno = 0;
     *node_n_ptr = strtoul(token_ptr, &end_ptr, 10);
     if((*node_n_ptr == 0 && errno != 0) || (token_ptr == end_ptr)){
         mcs_error(MCS_NUM_PARSER);
     }
-    token_ptr = strtok(end_ptr," \t");
+    token_ptr = strtok(NULL," \t");
     errno = 0;
     *param_ptr = strtod(token_ptr,&end_ptr);
     if((*node_n_ptr == 0.0 && errno != 0) || (token_ptr == end_ptr)){
@@ -238,7 +303,7 @@ void mcs_parse_diode(char* nl_line,
     if((*node_p_ptr == 0 && errno != 0) || (token_ptr == end_ptr)){
         mcs_error(MCS_NUM_PARSER);
     }
-    token_ptr = strtok(end_ptr," \t");
+    token_ptr = strtok(NULL," \t");
     errno = 0;
     *node_n_ptr = strtoul(token_ptr, &end_ptr, 10);
     if((*node_n_ptr == 0 && errno != 0) || (token_ptr == end_ptr)){
@@ -264,13 +329,13 @@ void mcs_parse_transistor(char* nl_line,
     if((*node_1_ptr == 0 && errno != 0) || (token_ptr == end_ptr)){
         mcs_error(MCS_NUM_PARSER);
     }
-    token_ptr = strtok(end_ptr," \t");
+    token_ptr = strtok(NULL," \t");
     errno = 0;
     *node_2_ptr = strtoul(token_ptr, &end_ptr, 10);
     if((*node_2_ptr == 0 && errno != 0) || (token_ptr == end_ptr)){
         mcs_error(MCS_NUM_PARSER);
     }
-    token_ptr = strtok(end_ptr," \t");
+    token_ptr = strtok(NULL," \t");
     errno = 0;
     *node_3_ptr = strtoul(token_ptr, &end_ptr, 10);
     if((*node_3_ptr == 0 && errno != 0) || (token_ptr == end_ptr)){

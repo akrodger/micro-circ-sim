@@ -28,11 +28,14 @@ void mcs_error(enum MCS_ERROR_TYPE e){
         case MCS_NETLIST_FMT:
             printf(MCS_NETLIST_FMT_STR);
             break;
-        case MCS_DEV_UNKNOWN:
-            printf(MCS_DEV_UNKNOWN_STR);
+        case MCS_DEV_READ_UNKNOWN:
+            printf(MCS_DEV_READ_UNKNOWN_STR);
             break;
         case MCS_NUM_PARSER:
             printf(MCS_NUM_PARSER_STR);
+            break;
+        case MCS_DEV_WRITE_UNKNOWN:
+            printf(MCS_DEV_WRITE_UNKNOWN_STR);
             break;
         default:
             printf(MCS_DEFAULT_ERR_STR);

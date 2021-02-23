@@ -54,7 +54,13 @@ void mcs_read_netlist(const char* filename, mcs_netlist** nl);
  *
  * 
  */
-void mcs_write_netlist(char* file_name, mcs_netlist* nl);
+void mcs_write_netlist(char* filename, mcs_netlist* nl);
+
+/*
+ * Read the mcs_element struct and output its data to a Cstring.
+ *
+ */
+void mcs_print_element(char* nl_line, mcs_element* z);
 
 /*
  * Allocate the memory required to store a netlist linked list element
