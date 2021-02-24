@@ -43,7 +43,7 @@ typedef struct _mcs_netlist{
  */
 
 /*
- * Read a netlist from a file.
+ * Read a netlist from a file. Store it in *nl.
  *
  * 
  */

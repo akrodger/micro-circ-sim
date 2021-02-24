@@ -13,7 +13,7 @@ CFLAGS=-g -Wall #-Werror
 #Some default common linked libraries (CLINX = Common Linkages)
 CLINX=-lm
 #A default OpenMP compilation flag. Set blank for serial code.
-OMP=#-fopenmp
+OMP=-fopenmp
 
 #An archiving software for making static libraries
 AR=ar
@@ -30,18 +30,15 @@ SRC_FILES=$(wildcard *.$(SRC_T))
 #Dependencies listing for the source files
 DEP_FILES=$(subst .$(SRC_T),.d,$(SRC_FILES))
 
-#A name for an archive file for MicroCircSim
-ARCH_FILE=libmcs.a
+#A listing of object files. Automatically generated based on SRC_FILES
+OBJ_FILES=$(subst .$(SRC_T),.o,$(SRC_FILES))
+#A name for an archive file constructured from the objs of this folder
+ARCH_FILE=lib$(shell basename $(CURDIR)).a
 #A default name of an executable
 EXE_NM=exec.$(EXE_T)
 
-#Subdirectories filled with various modules
-CE=circuit_elements
-EH=error_handling
-NP=netlist_parser
-SM=sparse_matrix
-#List these objects together on the OBJ_FILES list.
-OBJ_FILES=$(CE)/$(CE).o $(EH)/$(EH).o $(NP)/$(NP).o $(SM)/$(SM).o
+#Name of a folder contained within this folder.
+SUBDIR=folder
 
 #Begin Makefile recipes template
 #.PHONY means that this recipe does not make a file which has the
@@ -63,7 +60,7 @@ default: exec
 objs: $(OBJ_FILES)
 
 #Including the dependent files. forces makefile to run deps every time.
-#-include deps
+-include deps
 
 #Dependent files make recipe. Makes a .d file listing the includes of sources.
 %.d: %.$(SRC_T)
@@ -94,15 +91,6 @@ $(ARCH_FILE): $(OBJ_FILES)
 libsubdir:
 	$(MAKE) -C $(SUBDIR)
 
-#$(CE)/$(CE).o:
-#	$(MAKE) -C $(CE) objs
-
-#$(EH)/$(EH).o:
-#	$(MAKE) -C $(EH) objs
-
-#$(NP)/$(NP).o:
-#	$(MAKE) -C $(NP) objs
-
 #A basic recipe for cleaning up object files and executables.
 .PHONY: clean
 clean: cleansubdir
@@ -115,7 +103,4 @@ clean: cleansubdir
 #Small projects do no need this. Simply uncomment to enable this.
 .PHONY: cleansubdir
 cleansubdir: 
-	$(MAKE) -C $(CE) clean
-	$(MAKE) -C $(EH) clean
-	$(MAKE) -C $(NP) clean
-	$(MAKE) -C $(SM) clean
+#	$(MAKE) -C $(SUBDIR) clean
