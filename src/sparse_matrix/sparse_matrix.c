@@ -50,44 +50,42 @@ void mcs_spmat_bicgstab(mcs_spmat* A,
                         double* x,
                         double* work,
                         double tol){
-    double a, w, be, res_dot_old, res_dot_new, norm2;
-    double *r_j, *r_0, *p_j, *Ap_j, *s_j, *As_j;
-    long N = A->r_len, i=0;
-    
-/*    printf("\n");*/
-/*    for(int j=0;j<N;j++){*/
-/*        printf("%+2.3lf\n",b[j]);*/
-/*        getchar();*/
-/*    }*/
-    r_0  = b;
-    r_j  = work;
-    p_j  = &(work[N]);
-    Ap_j = &(work[2*N]);
-    s_j  = &(work[3*N]);
-    As_j = &(work[4*N]);
-    for(i=0;i<N;i++){x[i] = 0.0;}
+    /********From Xianyi Zeng's lecture notes at UT El Paso*********/
+    double a, w, be, rho_old, rho_new, norm2;
+    double *r_j, *r_0, *p_j, *v_j, *s_j, *t_j;
+    long N = A->r_len, i=0,k=0;
+    r_j = work;
+    p_j = &(work[N]);
+    v_j = &(work[2*N]);
+    s_j = &(work[3*N]);
+    t_j = &(work[4*N]);
+    r_0 = &(work[5*N]);
+    mcs_spmatvec('n',A,x,r_0);
+    mcs_vector_add(b,r_0,-1.0,r_0,i,N);
     mcs_vector_copy(r_0,r_j,i,N);
     mcs_vector_copy(r_0,p_j,i,N);
-    mcs_vector_dot(r_j,r_0,res_dot_old,i,N);
+    mcs_vector_dot(r_j,r_0,rho_old,i,N);
     do{
-        mcs_spmatvec('n',A,p_j,Ap_j);
-        mcs_vector_dot(Ap_j,r_0,a,i,N);
-        a = res_dot_old / a;
-        mcs_vector_add(r_j,Ap_j,-a,s_j,i,N);
-        mcs_spmatvec('n',A,s_j,As_j);
-        mcs_vector_dot(As_j,As_j,norm2,i,N);
-        mcs_vector_dot(As_j,s_j,w,i,N);
+        printf("iter = %ld\n",++k);
+        mcs_spmatvec('n',A,p_j,v_j);
+        mcs_vector_dot(v_j,r_0,a,i,N);
+        a = rho_old / a;
+        mcs_vector_add(r_j,v_j,-a,s_j,i,N);
+        mcs_spmatvec('n',A,s_j,t_j);
+        mcs_vector_dot(t_j,t_j,norm2,i,N);
+        mcs_vector_dot(t_j,s_j,w,i,N);
         w = w/norm2;
         mcs_vector_combo2(x,p_j,a,s_j,w,x,i,N);
-        mcs_vector_add(s_j,As_j,-w,r_j,i,N);
+        mcs_vector_add(s_j,t_j,-w,r_j,i,N);
         mcs_vector_dot(r_j,r_j,norm2,i,N);
         if(sqrt(norm2) < N*tol){break;}
-        mcs_vector_dot(r_j,r_0,res_dot_new,i,N);
-        be = (a/w)*(res_dot_new/res_dot_old);
-        res_dot_old = res_dot_new;
+        mcs_vector_dot(r_j,r_0,rho_new,i,N);
+        be = (a/w)*(rho_new/rho_old);
+        rho_old = rho_new;
         w = -w*be;
-        mcs_vector_combo2(r_j,p_j,be,Ap_j,w,p_j,i,N);
+        mcs_vector_combo2(r_j,p_j,be,v_j,w,p_j,i,N);
     }while(1);
+    /****************END LECTURE NOTES REFERENCE********************/
 }
 
 

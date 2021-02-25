@@ -50,11 +50,14 @@ void mcs_spmatvec(char tran, mcs_spmat* A, double* x, double*y);
  * For the sparse matrix A, solve the system of equations A*x = b for a given b
  * using the stabilized biconjugate gradient method.
  *
- * Function halts when residual is less than tol.
+ * Function halts when approximated residual is less than tol.
  *
  * Expected: (# entries of x) = (# entries of b) = A->r_len = A->c_len.
- * workspace vector called work expected to have 5*(# entries of x)
+ * workspace vector called work expected to have 6*(# entries of x)
  * memory allocated.
+ *
+ * x is expected to contain an intial guess for the solution to the system.
+ * Therefore, it is required to set the entries of x before calling.
  */
 void mcs_spmat_bicgstab(mcs_spmat* A,
                         double* b,
