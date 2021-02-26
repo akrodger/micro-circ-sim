@@ -87,7 +87,8 @@ void mcs_bicgstab(void (*L)(double*,double*),
         mcs_vector_combo2(x,p_j,a,s_j,w,x,i,N);
         mcs_vector_add(s_j,t_j,-w,r_j,i,N);
         mcs_vector_dot(r_j,r_j,norm2,i,N);
-        if(sqrt(norm2) < N*tol){break;}
+        norm2 /= N;
+        if(sqrt(norm2) < tol){break;}
         mcs_vector_dot(r_j,r_0,rho_new,i,N);
         be = (a/w)*(rho_new/rho_old);
         rho_old = rho_new;
